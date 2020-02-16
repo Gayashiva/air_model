@@ -70,7 +70,7 @@ if site == "schwarzsee":
         aperture_f=0.005,  # Fountain aperture diameter
         h_f=1.35,  # Fountain steps h_f
         discharge=11.5,  # Fountain on discharge
-        crit_temp=-2,  # Fountain runtime temperature
+        crit_temp=-5,  # Fountain runtime temperature
         latitude = 46.693723,
         longitude = 7.297543,
         utc_offset = 1,

@@ -11,17 +11,11 @@ import os
 import logging
 from src.data.config import site, dates, option, folders, fountain, surface
 
+pd.options.mode.chained_assignment = None  # Suppress Setting with warning
+
+
 def projectile_xy(v, hs=0.0, g=9.8):
-    """
-    calculate a list of (x, y) projectile motion data points
-    where:
-    x axis is distance (or range) in meters
-    y axis is height in meters
-    v is muzzle velocity of the projectile (meter/second)
-    theta_f is the firing angle with repsect to ground (degrees)
-    hs is starting height with respect to ground (meters)
-    g is the gravitational pull (meters/second_square)
-    """
+
     data_xy = []
     t = 0.0
     theta_f = math.radians(45)
@@ -38,6 +32,7 @@ def projectile_xy(v, hs=0.0, g=9.8):
         # use the time in increments of 0.1 seconds
         t += 0.01
     return x
+
 
 def getSEA(date, latitude, longitude, utc_offset):
     hour = date.hour
@@ -95,9 +90,10 @@ def getSEA(date, latitude, longitude, utc_offset):
 
     return math.radians(SEA)
 
+
 def discharge_rate(df, fountain):
 
-    if option == 'schwarzsee':
+    if option == "schwarzsee":
         df["Fountain"] = 0  # Fountain run time
 
         df_nights = pd.read_csv(
@@ -116,7 +112,7 @@ def discharge_rate(df, fountain):
 
         df_nights["Date"] = pd.to_datetime(df_nights["Date"], format="%Y-%m-%d")
         mask = (df_nights["Date"] >= dates["start_date"]) & (
-                df_nights["Date"] <= dates["end_date"]
+            df_nights["Date"] <= dates["end_date"]
         )
         df_nights = df_nights.loc[mask]
         df_nights = df_nights.reset_index()
@@ -129,7 +125,7 @@ def discharge_rate(df, fountain):
                 "Fountain",
             ] = 1
 
-    if option == 'temperature':
+    if option == "temperature":
         mask = df["T_a"] < fountain["crit_temp"]
         mask_index = df[mask].index
         df.loc[mask_index, "Fountain"] = 1
@@ -168,12 +164,12 @@ def discharge_rate(df, fountain):
             # Vapor Pressure empirical relations
             if "vp_a" not in list(df.columns):
                 df.loc[i, "vp_a"] = (
-                        6.11
-                        * math.pow(
-                    10, 7.5 * df.loc[i - 1, "T_a"] / (df.loc[i - 1, "T_a"] + 237.3)
-                )
-                        * df.loc[i, "RH"]
-                        / 100
+                    6.11
+                    * math.pow(
+                        10, 7.5 * df.loc[i - 1, "T_a"] / (df.loc[i - 1, "T_a"] + 237.3)
+                    )
+                    * df.loc[i, "RH"]
+                    / 100
                 )
 
             df.loc[i, "vp_ice"] = 6.112 * np.exp(
@@ -182,38 +178,37 @@ def discharge_rate(df, fountain):
 
             # Sublimation only
             df.loc[i, "Ql"] = (
-                    0.623
-                    * Ls
-                    * rho_a
-                    / p0
-                    * math.pow(k, 2)
-                    * df.loc[i, "v_a"]
-                    * (df.loc[i, "vp_a"] - df.loc[i, "vp_ice"])
-                    / (
-                            np.log(surface["h_aws"] / surface["z0mi"])
-                            * np.log(surface["h_aws"] / surface["z0hi"])
-                    )
+                0.623
+                * Ls
+                * rho_a
+                / p0
+                * math.pow(k, 2)
+                * df.loc[i, "v_a"]
+                * (df.loc[i, "vp_a"] - df.loc[i, "vp_ice"])
+                / (
+                    np.log(surface["h_aws"] / surface["z0mi"])
+                    * np.log(surface["h_aws"] / surface["z0hi"])
+                )
             )
 
             # Short Wave Radiation SW
             df.loc[i, "SW"] = (1 - df.loc[i, "a"]) * (
-                    df.loc[i, "Rad"] + df.loc[i, "DRad"]
+                df.loc[i, "Rad"] + df.loc[i, "DRad"]
             )
 
             # Cloudiness from diffuse fraction
             if df.loc[i, "Rad"] + df.loc[i, "DRad"] > 1:
                 df.loc[i, "cld"] = df.loc[i, "DRad"] / (
-                        df.loc[i, "Rad"] + df.loc[i, "DRad"]
+                    df.loc[i, "Rad"] + df.loc[i, "DRad"]
                 )
             else:
                 df.loc[i, "cld"] = 0
 
             # atmospheric emissivity
             df.loc[i, "e_a"] = (
-                                           1.24
-                                           * math.pow(abs(df.loc[i, "vp_a"] / (df.loc[i, "T_a"] + 273.15)),
-                                                      1 / 7)
-                                   ) * (1 + 0.22 * math.pow(df.loc[i, "cld"], 2))
+                1.24
+                * math.pow(abs(df.loc[i, "vp_a"] / (df.loc[i, "T_a"] + 273.15)), 1 / 7)
+            ) * (1 + 0.22 * math.pow(df.loc[i, "cld"], 2))
 
             # Long Wave Radiation LW
             if "oli000z0" not in list(df.columns):
@@ -223,26 +218,28 @@ def discharge_rate(df, fountain):
                 ) - surface["ie"] * bc * math.pow(df.loc[i - 1, "T_s"] + 273.15, 4)
             else:
                 df.loc[i, "LW"] = df.loc[i, "oli000z0"] - surface["ie"] * bc * math.pow(
-                    df.loc[i - 1, "T_s"] + 273.15,
-                    4)
+                    df.loc[i - 1, "T_s"] + 273.15, 4
+                )
 
             # Sensible Heat Qs
             df.loc[i, "Qs"] = (
-                    ci
-                    * rho_a
-                    * df.loc[i, "p_a"]
-                    / p0
-                    * math.pow(k, 2)
-                    * df.loc[i, "v_a"]
-                    * (df.loc[i, "T_a"] - df.loc[i - 1, "T_s"])
-                    / (
-                            np.log(surface["h_aws"] / surface["z0mi"])
-                            * np.log(surface["h_aws"] / surface["z0hi"])
-                    )
+                ci
+                * rho_a
+                * df.loc[i, "p_a"]
+                / p0
+                * math.pow(k, 2)
+                * df.loc[i, "v_a"]
+                * (df.loc[i, "T_a"] - df.loc[i - 1, "T_s"])
+                / (
+                    np.log(surface["h_aws"] / surface["z0mi"])
+                    * np.log(surface["h_aws"] / surface["z0hi"])
+                )
             )
 
             # Total Energy W/m2
-            df.loc[i, "TotalE"] = df.loc[i, "SW"] + df.loc[i, "LW"] + df.loc[i, "Qs"] + df.loc[i, "Ql"]
+            df.loc[i, "TotalE"] = (
+                df.loc[i, "SW"] + df.loc[i, "LW"] + df.loc[i, "Qs"] + df.loc[i, "Ql"]
+            )
 
         x = df["When"]
         mask = df["TotalE"] < 0
@@ -252,27 +249,28 @@ def discharge_rate(df, fountain):
         mask_index = df[mask].index
         df.loc[mask_index, "Fountain"] = 0
 
-    if site == 'schwarzsee':
+    if site == "schwarzsee":
         df.Discharge = df.Discharge * df.Fountain
     else:
         df.Discharge = fountain["discharge"] * df.Fountain
 
     return df["Fountain"], df["Discharge"]
 
+
 def emissivity(df):
     S_0 = 1360  # W m-2
 
-    for i in range(1, df.shape[0]) :
+    for i in range(1, df.shape[0]):
 
         # Vapor Pressure empirical relations
         if "vp_a" not in list(df.columns):
             df.loc[i, "vp_a"] = (
-                    6.11
-                    * math.pow(
-                10, 7.5 * df.loc[i - 1, "T_a"] / (df.loc[i - 1, "T_a"] + 237.3)
-            )
-                    * df.loc[i, "RH"]
-                    / 100
+                6.11
+                * math.pow(
+                    10, 7.5 * df.loc[i - 1, "T_a"] / (df.loc[i - 1, "T_a"] + 237.3)
+                )
+                * df.loc[i, "RH"]
+                / 100
             )
 
         # Estimating Solar Area fraction
@@ -283,19 +281,28 @@ def emissivity(df):
             fountain["utc_offset"],
         )
 
-        optical_air_mass = 35 * math.sin(df.loc[i, "theta_s"] * (math.pow((1224 * math.pow(math.sin(df.loc[i, "theta_s"]), 2) + 1), -0.5)))
-        tau_R_tau_pg = 1.021 - 0.084* math.pow((optical_air_mass * (0.00949 * df.loc[i, "p_a"] + 0.051)), 0.5)
+        optical_air_mass = 35 * math.sin(
+            df.loc[i, "theta_s"]
+            * (math.pow((1224 * math.pow(math.sin(df.loc[i, "theta_s"]), 2) + 1), -0.5))
+        )
+        tau_R_tau_pg = 1.021 - 0.084 * math.pow(
+            (optical_air_mass * (0.00949 * df.loc[i, "p_a"] + 0.051)), 0.5
+        )
         precipitable_water = 4650 * df.loc[i, "vp_a"] / (df.loc[i, "T_a"] + 273.15)
         # print(optical_air_mass, precipitable_water)
-        tau_w = 1 - 0.077 * math.pow((optical_air_mass * precipitable_water),0.3)
+        tau_w = 1 - 0.077 * math.pow((optical_air_mass * precipitable_water), 0.3)
         tau_a = math.pow(0.935, optical_air_mass)
-        df.loc[i, "S_clr"] = S_0 * math.sin(df.loc[i, "theta_s"]) * tau_R_tau_pg * tau_w * tau_a
+        df.loc[i, "S_clr"] = (
+            S_0 * math.sin(df.loc[i, "theta_s"]) * tau_R_tau_pg * tau_w * tau_a
+        )
 
         if df.loc[i, "S_clr"] != 0:
             df.loc[i, "s"] = (df.loc[i, "Rad"] + df.loc[i, "DRad"]) / df.loc[i, "S_clr"]
             if df.loc[i, "s"] > 1:
                 df.loc[i, "s"] = 1
-            df.loc[i, "e_a"] = (1 - df.loc[i, "s"]) + df.loc[i, "s"] * (0.83 - 0.18 * math.pow( 10, -0.067 * df.loc[i, "vp_a"]))
+            df.loc[i, "e_a"] = (1 - df.loc[i, "s"]) + df.loc[i, "s"] * (
+                0.83 - 0.18 * math.pow(10, -0.067 * df.loc[i, "vp_a"])
+            )
         else:
             if i - 96 > 0:
                 for j in range(i - 96, i):
@@ -324,8 +331,9 @@ def emissivity(df):
 
     return df["vp_a"], df["theta_s"], df["cld"]
 
+
 # Remove Precipitation from simulation
-if option != 'schwarzsee':
+if option != "schwarzsee":
     df["Prec"] = 0
 
 if site == "schwarzsee":
@@ -470,9 +478,7 @@ if site == "schwarzsee":
         inplace=True,
     )
 
-    df_out = df[
-        ["When", "T_a", "RH", "v_a", "Discharge", "Rad", "DRad", "Prec", "p_a"]
-    ]
+    df_out = df[["When", "T_a", "RH", "v_a", "Discharge", "Rad", "DRad", "Prec", "p_a"]]
 
     df_out = df_out.round(5)
 
@@ -532,7 +538,6 @@ if site == "plaffeien":
     cols = ["T_a", "RH", "v_a", "Rad", "DRad", "Prec", "p_a", "vp_a"]
     df_out[cols] = df_out[cols] / 2
     df_out = df_out.set_index("When").resample("5T").ffill().reset_index()
-
 
     cols = [
         "When",
@@ -646,12 +651,10 @@ for col in l:
     df[col] = 0
 
 """Discharge Rate"""
-df["Fountain"], df["Discharge"] = discharge_rate(df,fountain)
+df["Fountain"], df["Discharge"] = discharge_rate(df, fountain)
 
 """Albedo Decay"""
-surface["decay_t"] = (
-    surface["decay_t"] * 24 * 60 / 5
-)  # convert to 5 minute time steps
+surface["decay_t"] = surface["decay_t"] * 24 * 60 / 5  # convert to 5 minute time steps
 s = 0
 f = 0
 
@@ -695,17 +698,19 @@ for i in range(1, df.shape[0]):
 
     """ Vapour Pressure"""
     if "vp_a" not in list(df.columns):
-        df.loc[i, "vp_a"] = (6.11 * math.pow(10, 7.5 * df.loc[i - 1, "T_a"] / (df.loc[i - 1, "T_a"] + 237.3))* df.loc[i, "RH"]/ 100)
-
+        df.loc[i, "vp_a"] = (
+            6.11
+            * math.pow(10, 7.5 * df.loc[i - 1, "T_a"] / (df.loc[i - 1, "T_a"] + 237.3))
+            * df.loc[i, "RH"]
+            / 100
+        )
 
     """Cloudiness"""
     # Cloudiness from diffuse fraction
     if df.loc[i, "Rad"] + df.loc[i, "DRad"] > 1:
-        df.loc[i, "cld"] = df.loc[i, "DRad"] / (
-                df.loc[i, "Rad"] + df.loc[i, "DRad"]
-        )
+        df.loc[i, "cld"] = df.loc[i, "DRad"] / (df.loc[i, "Rad"] + df.loc[i, "DRad"])
     else:
-    # Night Cloudiness average of last 8 hours
+        # Night Cloudiness average of last 8 hours
         if i - 96 > 0:
             for j in range(i - 96, i):
                 df.loc[i, "cld"] += df.loc[j, "cld"]
@@ -717,15 +722,12 @@ for i in range(1, df.shape[0]):
 
     # atmospheric emissivity
     df.loc[i, "e_a"] = (
-        1.24
-        * math.pow(abs(df.loc[i, "vp_a"] / (df.loc[i, "T_a"] + 273.15)), 1 / 7)
+        1.24 * math.pow(abs(df.loc[i, "vp_a"] / (df.loc[i, "T_a"] + 273.15)), 1 / 7)
     ) * (1 + 0.22 * math.pow(df.loc[i, "cld"], 2))
 
     """ Fountain Spray radius """
     v_f = df.loc[i, "Discharge"] / (60 * 1000 * Area)
-    df.loc[i, "r_f"] = projectile_xy(
-        v_f, fountain["h_f"]
-    )
+    df.loc[i, "r_f"] = projectile_xy(v_f, fountain["h_f"])
 
 df.to_csv(filename + "_input.csv")
 
@@ -777,7 +779,7 @@ fig = plt.figure()
 ax1 = fig.add_subplot(111)
 
 y1 = df.e_a
-print(y1.head())
+
 ax1.plot(x, y1, "k-", linewidth=0.5)
 ax1.set_ylabel("Atmospheric emissivity")
 ax1.grid()
@@ -828,6 +830,22 @@ ax1 = fig.add_subplot(111)
 y1 = df.a
 ax1.plot(x, y1, "k-", linewidth=0.5)
 ax1.set_ylabel("Albedo")
+ax1.grid()
+
+# format the ticks
+ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
+ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+ax1.xaxis.set_minor_locator(mdates.DayLocator())
+ax1.grid()
+fig.autofmt_xdate()
+pp.savefig(bbox_inches="tight")
+plt.clf()
+
+fig = plt.figure()
+ax1 = fig.add_subplot(111)
+y1 = df.SEA
+ax1.plot(x, y1, "k-", linewidth=0.5)
+ax1.set_ylabel("SEA")
 ax1.grid()
 
 # format the ticks

@@ -35,7 +35,7 @@ logger_handler.setLevel(logging.DEBUG)
 
 # Create the Handler for logging data to console.
 console_handler = StreamHandler()
-console_handler.setLevel(logging.CRITICAL)
+console_handler.setLevel(logging.DEBUG)
 
 # Create a Formatter for formatting the log messages
 logger_formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
@@ -439,7 +439,7 @@ if option == "schwarzsee":
     plt.xlabel('Days')
     plt.ylabel('Energy [$W\,m^{-2}$]')
     plt.legend(loc='upper left')
-    plt.ylim(-150, 150)
+    # plt.ylim(-150, 150)
     plt.xticks(rotation=45)
     pp.savefig(bbox_inches="tight")
     plt.clf()
@@ -499,31 +499,6 @@ fig.autofmt_xdate()
 pp.savefig(bbox_inches="tight")
 plt.clf()
 
-y1 = df.water
-y2 = df.sprayed
-fig = plt.figure()
-ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-")
-ax1.set_ylabel("Water used [$l$]")
-ax1.set_xlabel("Days")
-
-ax2 = ax1.twinx()
-ax2.plot(x, y2, "b-", linewidth=0.5)
-ax2.set_ylabel("Water sprayed [$l$]", color="b")
-for tl in ax2.get_yticklabels():
-    tl.set_color("b")
-
-ax1.set_ylim(ax2.get_ylim())
-
-#  format the ticks
-ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
-ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
-ax1.xaxis.set_minor_locator(mdates.DayLocator())
-ax1.grid()
-fig.autofmt_xdate()
-pp.savefig(bbox_inches="tight")
-plt.clf()
-
 y1 = df.SA
 
 fig = plt.figure()
@@ -546,14 +521,14 @@ z.plot.bar( stacked=True, edgecolor = dfd['Discharge'], linewidth=0.5)
 plt.xlabel('Days')
 plt.ylabel('Energy [$W\,m^{-2}$]')
 plt.legend(loc = 'upper left')
-plt.ylim(-150, 150)
+# plt.ylim(-150, 150)
 plt.xticks(rotation=45)
 
 pp.savefig(bbox_inches="tight")
 plt.clf()
 
 y1 = df.h_ice
-y2 = df.r_ice
+y2 = df.r_top
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
@@ -617,29 +592,12 @@ fig.autofmt_xdate()
 pp.savefig(bbox_inches="tight")
 plt.clf()
 
-y1 = df.a
-
-fig = plt.figure()
-ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-", linewidth=1)
-ax1.set_ylabel("Albedo")
-ax1.set_xlabel("Days")
-
-#  format the ticks
-ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
-ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
-ax1.xaxis.set_minor_locator(mdates.DayLocator())
-ax1.grid()
-fig.autofmt_xdate()
-pp.savefig(bbox_inches="tight")
-plt.clf()
-
 y1 = df.T_s
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
 ax1.plot(x, y1, "k-", linewidth=0.5)
-ax1.set_ylabel("Surface Temperature (C)")
+ax1.set_ylabel("Surface Temperature [$\degree C$]")
 ax1.set_xlabel("Days")
 
 #  format the ticks
@@ -669,22 +627,13 @@ pp.savefig(bbox_inches="tight")
 plt.clf()
 
 y1 = df.gas / 5
-y2 = df.deposition / 5
 
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-", linewidth=0.5)
+ax1.plot(x, y1, "b-", linewidth=0.5)
 ax1.set_ylabel("Gas Production rate [$l\,min^{-1}$]")
 ax1.set_xlabel("Days")
 
-ax2 = ax1.twinx()
-ax2.plot(x, y2, "b-", linewidth=0.5)
-ax2.set_ylabel("Deposition rate [$l\,min^{-1}$]", color="b")
-for tl in ax2.get_yticklabels():
-    tl.set_color("b")
-
-ax2.set_ylim(ax1.get_ylim())
-
 #  format the ticks
 ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
 ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
@@ -694,11 +643,12 @@ fig.autofmt_xdate()
 pp.savefig(bbox_inches="tight")
 plt.clf()
 
-y1 = df.SEA
+y1 = df.deposition / 5
+
 fig = plt.figure()
 ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-", linewidth=0.5)
-ax1.set_ylabel("Solar Elevation angle [$\degree$]")
+ax1.plot(x, y1, "b-", linewidth=0.5)
+ax1.set_ylabel("Deposition rate [$l\,min^{-1}$]")
 ax1.set_xlabel("Days")
 
 #  format the ticks
@@ -709,62 +659,9 @@ ax1.grid()
 fig.autofmt_xdate()
 pp.savefig(bbox_inches="tight")
 plt.clf()
+y1 = df.gas / 5
+y2 = df.deposition / 5
 
-y1 = df.cld
-fig = plt.figure()
-ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-", linewidth=0.5)
-ax1.set_ylabel("Cloudiness")
-ax1.set_xlabel("Days")
-
-#  format the ticks
-ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
-ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
-ax1.xaxis.set_minor_locator(mdates.DayLocator())
-ax1.grid()
-fig.autofmt_xdate()
-pp.savefig(bbox_inches="tight")
-plt.clf()
-
-y1 = df.e_a
-fig = plt.figure()
-ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-", linewidth=0.5)
-ax1.set_ylabel("Atmospheric Emissivity")
-ax1.set_xlabel("Days")
-
-#  format the ticks
-ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
-ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
-ax1.xaxis.set_minor_locator(mdates.DayLocator())
-ax1.grid()
-fig.autofmt_xdate()
-pp.savefig(bbox_inches="tight")
-plt.clf()
-
-y1 = df.Discharge
-y2 = df.ppt * 1000/5
-
-fig = plt.figure()
-ax1 = fig.add_subplot(111)
-ax1.plot(x, y1, "k-")
-ax1.set_ylabel("Discharge [$l\,min^{-1}$]")
-ax1.set_xlabel("Days")
-
-ax2 = ax1.twinx()
-ax2.plot(x, y2, "b-", linewidth=0.5)
-ax2.set_ylabel("Precipitation [$l$]", color="b")
-for tl in ax2.get_yticklabels():
-    tl.set_color("b")
-
-#  format the ticks
-ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
-ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
-ax1.xaxis.set_minor_locator(mdates.DayLocator())
-ax1.grid()
-fig.autofmt_xdate()
-pp.savefig(bbox_inches="tight")
-plt.clf()
 plt.close('all')
 
 pp.close()
