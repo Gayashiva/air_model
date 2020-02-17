@@ -105,7 +105,6 @@ def icestupa(df, fountain, surface):
 
         if state == 1:
 
-            """ Keeping r_ice constant to determine SA """
             if (df.Discharge[i] > 0):
 
                 """ Truncated cone SA """
@@ -138,6 +137,8 @@ def icestupa(df, fountain, surface):
                     math.pi * df.loc[i, "r_ice"]**2
                     + math.pi * df.loc[i, "r_ice"] * df.loc[i, "h_ice"]
                 )
+
+
 
             logger.info(
                 "Ice area is %s and height is %s at %s",
@@ -240,55 +241,63 @@ def icestupa(df, fountain, surface):
                 df.loc[i, "Rad"] * df.loc[i, "SRf"] + df.loc[i, "DRad"]
             )
 
-            # Sensible Heat Qs
             if df.loc[i, "liquid"] > 0:
-                df.loc[i, "Qs"] = (
-                        cw
-                        * rho_a
-                        * df.loc[i - 1, "p_a"]
-                        / p0
-                        * math.pow(k, 2)
-                        * df.loc[i - 1, "v_a"]
-                        * (df.loc[i - 1, "T_a"])
-                        / (
-                                np.log(surface["h_aws"] / surface["z0mi"])
-                                * np.log(surface["h_aws"] / surface["z0hi"])
-                        )
-                )
 
                 # Conduction Freezing
                 if df.loc[i - 1, "T_s"] < 0:
-                    df.loc[i, "Qc"] = tc_i * df.loc[i, "SA"] * ( - df.loc[i - 1, "T_s"]) * time_steps/dx
-
-                    df.loc[i, "solid"] += df.loc[i, "Qc"] / Lf
+                    df.loc[i, "solid"] += (ice_layer * ci * (-df.loc[i - 1, "T_s"])) / (
+                        Lf
+                    )
 
                     if df.loc[i, "solid"] > df.loc[i, "liquid"]:
                         df.loc[i, "solid"] = df.loc[i, "liquid"]
                         df.loc[i, "liquid"] = 0
                     else:
                         df.loc[i, "liquid"] -= (
-                            df.loc[i, "Qc"]
-                        ) / Lf
+                                                       ice_layer * ci * (-df.loc[i - 1, "T_s"])
+                                               ) / Lf
 
-                    logger.critical(
-                        "Conduction made Ice layer %s thick", df.loc[i, "Qc"] / Lf,
+                    logger.error(
+                        "Ice layer made %s thick ice at %s",
+                        df.loc[i, "solid"],
+                        df.loc[i, "When"],
                     )
-                    df.loc[i - 1, "T_s"] = 0
+                    df.loc[i, "delta_T_s"] = -df.loc[i - 1, "T_s"]
 
-            else:
-                df.loc[i, "Qs"] = (
-                    ci
-                    * rho_a
-                    * df.loc[i - 1, "p_a"]
-                    / p0
-                    * math.pow(k, 2)
-                    * df.loc[i - 1, "v_a"]
-                    * (df.loc[i - 1, "T_a"] - df.loc[i - 1, "T_s"])
-                    / (
-                        np.log(surface["h_aws"] / surface["z0mi"])
-                        * np.log(surface["h_aws"] / surface["z0hi"])
-                    )
+                    # df.loc[i, "Qc"] = tc_i * df.loc[i, "SA"] * ( - df.loc[i - 1, "T_s"]) * time_steps/dx
+                    #
+                    # df.loc[i, "solid"] += df.loc[i, "Qc"] / Lf
+                    #
+                    # if df.loc[i, "solid"] > df.loc[i, "liquid"]:
+                    #     df.loc[i, "solid"] = df.loc[i, "liquid"]
+                    #     df.loc[i, "liquid"] = 0
+                    # else:
+                    #     df.loc[i, "liquid"] -= (
+                    #         df.loc[i, "Qc"]
+                    #     ) / Lf
+                    #
+                    # logger.critical(
+                    #     "Conduction made Ice layer %s thick", df.loc[i, "Qc"] / Lf,
+                    # )
+                    # df.loc[i - 1, "T_s"] = 0
+
+            # Sensible Heat Qs
+
+            df.loc[i, "Qs"] = (
+                ci
+                * rho_a
+                * df.loc[i - 1, "p_a"]
+                / p0
+                * math.pow(k, 2)
+                * df.loc[i - 1, "v_a"]
+                * (df.loc[i - 1, "T_a"] - df.loc[i - 1, "T_s"])
+                / (
+                    np.log(surface["h_aws"] / surface["z0mi"])
+                    * np.log(surface["h_aws"] / surface["z0hi"])
                 )
+            )
+
+
 
             # Long Wave Radiation LW
             if "oli000z0" not in list(df.columns):
