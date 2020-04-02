@@ -36,7 +36,7 @@ logger_handler.setLevel(logging.DEBUG)
 
 # Create the Handler for logging data to console.
 console_handler = StreamHandler()
-console_handler.setLevel(logging.CRITICAL)
+console_handler.setLevel(logging.DEBUG)
 
 # Create a Formatter for formatting the log messages
 logger_formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")

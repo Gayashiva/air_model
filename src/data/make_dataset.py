@@ -398,7 +398,7 @@ if __name__ == '__main__':
         df_in = df_in.resample("5Min", on="When").first().drop("When", 1).reset_index()
 
         # Fill missing data
-        for i in range(1, df_in.shape[0]):
+        for i in tqdm(range(1, df_in.shape[0])):
             if np.isnan(df_in.loc[i, "Temperature"]):
                 df_in.loc[i, "Temperature"] = df_in.loc[i - 288, "Temperature"]
                 df_in.loc[i, "Humidity"] = df_in.loc[i - 288, "Humidity"]

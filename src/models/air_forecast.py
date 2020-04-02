@@ -15,7 +15,7 @@ pd.options.mode.chained_assignment = None  # Suppress Setting with warning
 def conduct(T_initial, Q_dot_in = 0):
     A = 1  # cross sectional area of wall element in m^2
     rho = 916.0  # density of wall material in kg / m^3
-    k = 2.1  # thermal conductivity of wall material in W / (m*K)
+    kk = 2.1  # thermal conductivity of wall material in W / (m*K)
     c = 2.097 * 1000  # specific heat capacity in J / (kg*K)
     sigma = 5.6704e-08  # Stefan-Boltzmann constant in W * m^-2 * K^-4
     h = 0.0  # convective heat transfer coefficient in W / (m^2 * K)
@@ -34,10 +34,10 @@ def conduct(T_initial, Q_dot_in = 0):
     # The size of this nondimensional factor gives a rough idea
     # of the stability of the crude numerical integration we are using.
     # If this is too big there will be problems.
-    simfac = (k * dt) / (c * rho * ddx * ddx)
+    simfac = (kk * dt) / (c * rho * ddx * ddx)
 
     # this is the factor by which to multiply Q_dot_in and Q_dot_out
-    heatfac = ddx / (k * A)
+    heatfac = ddx / (kk * A)
 
     # initialize volume element coordinates and time samples
     x = np.linspace(0, ddx * (N - 1), N)
@@ -55,6 +55,7 @@ def conduct(T_initial, Q_dot_in = 0):
     for ctr in range(len(x)):
         T[ctr, 0] = T_initial[ctr] + 273.15
 
+    # T[len(x) - 1, :] = 273.15
 
     for j in range(len(timesamps) - 1):
         # get the outside wall temperature and heat flow at current time
@@ -72,7 +73,7 @@ def conduct(T_initial, Q_dot_in = 0):
                 T[ctr, j] - 2 * T[ctr + 1, j] + T[ctr + 2, j]
             )
 
-    return T[0,:] - 273.15
+    return T[:,-1] - 273.15
 
 
 def icestupa(df, fountain, surface):
@@ -312,14 +313,15 @@ def icestupa(df, fountain, surface):
 
                 # Ice Temperature
 
-                if i-start<10:
-                    df.loc[i, "delta_T_s"] += (
-                        df.loc[i, "Ql"] * df.loc[i, "SA"] * time_steps
-                    ) / (ice_layer * ci)
-                else:
-                    T_layers = conduct(df["T_s"][i-9:i+1].values, df.loc[i, "Ql"])
+                T_layers = conduct(T_layers, df.loc[i, "Ql"])
 
-                    # df.loc[i, "delta_T_s"] += T_layers[0]-df.loc[i-1, "T_s"]
+
+                logger.info(
+                    "Temperature gradient after Latent %s is %s at %s",
+                    df.loc[i, "Ql"],
+                    T_layers,
+                    df.loc[i, "When"],
+                )
 
 
                 logger.debug(
@@ -376,7 +378,7 @@ def icestupa(df, fountain, surface):
                     * (-df.loc[i - 1, "T_s"])
                     / (df.loc[i, "SA"] * time_steps)
                 )
-                # df.loc[i, "delta_T_s"] = -df.loc[i - 1, "T_s"]
+
                 T_layers[0] = 0
 
                 logger.debug(
@@ -416,11 +418,14 @@ def icestupa(df, fountain, surface):
                 else:
                     """ When fountain off and energy negative """
                     # Cooling Ice
-                    if i-start<10:
-                        df.loc[i, "delta_T_s"] += (df.loc[i, "EJoules"]) / (ice_layer * ci)
+                    T_layers = conduct(T_layers, df.loc[i, "TotalE"])
 
-                    else:
-                        T_layers = conduct(df["T_s"][i - 9:i + 1].values, df.loc[i, "TotalE"])
+                    logger.info(
+                        "Temperature gradient after Energy %s is %s at %s",
+                        df.loc[i, "TotalE"],
+                        T_layers,
+                        df.loc[i, "When"],
+                    )
 
                 logger.debug(
                     "Ice made after energy neg is %s thick at temp %s",
@@ -444,25 +449,35 @@ def icestupa(df, fountain, surface):
                         / (Lf*rho_i*df.loc[i, "SA"])
                     )
 
-                    T_layers[0] = 0
+                    T_layers = np.zeros(10)
 
                 else:
 
-                    T_layers = conduct(df["T_s"][i - 9:i + 1].values, df.loc[i, "TotalE"])
+                    T_layers = conduct(T_layers, df.loc[i, "TotalE"])
 
-                    df.loc[i, "delta_T_s"] += T_layers[0] - df.loc[i - 1, "T_s"]
-
-                logger.debug(
+                logger.info(
                     "Ice melted is %s thick at %s",
                     round(df.loc[i, "melted"]),
                     df.loc[i, "When"],
                 )
 
             """ Quantities of all phases """
-            if i-start < 10:
-                df.loc[i, "T_s"] = df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]
-            else:
-                df.loc[i, "T_s"] = T_layers[0]
+
+            logger.debug(
+                "Temperature gradient is %s at %s",
+                df["T_s"][i-9:i+1].values,
+                df.loc[i, "When"],
+            )
+
+            for ctr in range(0,10):
+                df.loc[i-ctr, "T_s"] = T_layers[ctr]
+
+            logger.info(
+                "Temperature gradient is %s at %s",
+                T_layers,
+                df.loc[i, "When"],
+            )
+
             df.loc[i, "meltwater"] = df.loc[i - 1, "meltwater"] + df.loc[i, "melted"]
             df.loc[i, "ice"] = (
                 df.loc[i - 1, "ice"]
