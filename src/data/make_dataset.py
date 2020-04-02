@@ -10,6 +10,7 @@ import time
 from pathlib import Path
 import os
 import logging
+from tqdm import tqdm
 from src.data.config import site, dates, option, folders, fountain, surface
 
 start = time.time()
@@ -708,7 +709,7 @@ if __name__ == '__main__':
     Area = math.pi * math.pow(fountain["aperture_f"], 2) / 4
 
 
-    for i in range(1, df.shape[0]):
+    for i in tqdm(range(1, df.shape[0])):
 
         if option == "schwarzsee":
 

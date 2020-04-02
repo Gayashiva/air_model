@@ -12,7 +12,7 @@ from mpl_toolkits.mplot3d import Axes3D
 pd.options.mode.chained_assignment = None  # Suppress Setting with warning
 
 
-def conduct(T_initial = 273.15, Q_dot_in = 0):
+def conduct(T_initial, Q_dot_in = 0):
     A = 1  # cross sectional area of wall element in m^2
     rho = 916.0  # density of wall material in kg / m^3
     k = 2.1  # thermal conductivity of wall material in W / (m*K)
@@ -20,10 +20,11 @@ def conduct(T_initial = 273.15, Q_dot_in = 0):
     sigma = 5.6704e-08  # Stefan-Boltzmann constant in W * m^-2 * K^-4
     h = 0.0  # convective heat transfer coefficient in W / (m^2 * K)
 
-    T_initial = T_initial + 273.15  # initial temperature in Kelvin
+    T_initial = T_initial  # initial temperature in Kelvin
+    T_inf = 273.15
 
     L = 0.01  # thickness of the entire wall in meters
-    N = 2  # number of discrete wall segments
+    N = 10  # number of discrete wall segments
     ddx = L / N  # length of each wall segment in meters
 
     total_time = 5 * 60.0  # total duration of simulation in seconds
@@ -40,6 +41,7 @@ def conduct(T_initial = 273.15, Q_dot_in = 0):
 
     # initialize volume element coordinates and time samples
     x = np.linspace(0, ddx * (N - 1), N)
+
     timesamps = np.linspace(0, dt * nsteps, nsteps + 1)
 
     # "In the 2-D case with inputs of length M and N, the outputs are of
@@ -51,16 +53,16 @@ def conduct(T_initial = 273.15, Q_dot_in = 0):
 
     # set the initial temperature profile of the wall
     for ctr in range(len(x)):
-        T[ctr, 0] = T_initial
+        T[ctr, 0] = T_initial[ctr] + 273.15
+
 
     for j in range(len(timesamps) - 1):
         # get the outside wall temperature and heat flow at current time
         T_out = T[len(x) - 1, j]
+        Q_dot_out = sigma * A * (pow(T_out, 4) - pow(T_inf, 4)) + h * A * (T_out - T_inf)
 
         # now compute temperature at the outside boundary for the next time step
-        T[len(x) - 1, j + 1] = T_out + simfac * (
-            T[len(x) - 2, j] - T_out
-        )
+        T[len(x)-1, j+1] = T_out + simfac * (T[len(x)-2, j] - T_out - heatfac * Q_dot_out)
 
         # and now compute temperature at the inside boundary for the next time step
         T[0, j + 1] = T[0, j] + simfac * (T[1, j] - T[0, j] + heatfac * Q_dot_in)
@@ -70,7 +72,7 @@ def conduct(T_initial = 273.15, Q_dot_in = 0):
                 T[ctr, j] - 2 * T[ctr + 1, j] + T[ctr + 2, j]
             )
 
-    return T[0,- 1]-T_initial
+    return T[0,:] - 273.15
 
 
 def icestupa(df, fountain, surface):
@@ -95,7 +97,7 @@ def icestupa(df, fountain, surface):
     bc = 5.670367 * math.pow(10, -8)  # Stefan Boltzman constant
 
     """Miscellaneous"""
-    time_steps = 5 * 60  # s Model time steps
+    time_steps = 10 * 60  # s Model time steps
     p0 = 1013  # Standard air pressure hPa
     ftl = 0  # Fountain flight time loss ftl
     dx = 0.001  # Ice layer thickness dx #todo temperature gradient required to model
@@ -135,10 +137,15 @@ def icestupa(df, fountain, surface):
     for col in l:
         df[col] = 0
 
+    T_layers = np.zeros(10)
+
     """ Estimating Fountain Spray radius """
     R_f = (
         df["r_f"].replace(0, np.NaN).mean()
     )  # todo implement variable spray radius for variable discharge
+
+    # df = df.set_index("When").resample("15M").mean().reset_index()
+    # print(df)
 
     """ Simulation """
     for i in tqdm(range(1, df.shape[0])):
@@ -304,10 +311,16 @@ def icestupa(df, fountain, surface):
                 ) / L
 
                 # Ice Temperature
-                # df.loc[i, "delta_T_s"] += (
-                #     df.loc[i, "Ql"] * df.loc[i, "SA"] * time_steps
-                # ) / (ice_layer * ci)
-                df.loc[i, "delta_T_s"] += conduct(df.loc[i-1, 'T_s'], df.loc[i, "Ql"])
+
+                if i-start<10:
+                    df.loc[i, "delta_T_s"] += (
+                        df.loc[i, "Ql"] * df.loc[i, "SA"] * time_steps
+                    ) / (ice_layer * ci)
+                else:
+                    T_layers = conduct(df["T_s"][i-9:i+1].values, df.loc[i, "Ql"])
+
+                    # df.loc[i, "delta_T_s"] += T_layers[0]-df.loc[i-1, "T_s"]
+
 
                 logger.debug(
                     "Gas made after sublimation is %s ", round(df.loc[i, "gas"])
@@ -363,7 +376,8 @@ def icestupa(df, fountain, surface):
                     * (-df.loc[i - 1, "T_s"])
                     / (df.loc[i, "SA"] * time_steps)
                 )
-                df.loc[i, "delta_T_s"] = -df.loc[i - 1, "T_s"]
+                # df.loc[i, "delta_T_s"] = -df.loc[i - 1, "T_s"]
+                T_layers[0] = 0
 
                 logger.debug(
                     "Ice layer made %s thick ice at %s",
@@ -402,8 +416,11 @@ def icestupa(df, fountain, surface):
                 else:
                     """ When fountain off and energy negative """
                     # Cooling Ice
-                    # df.loc[i, "delta_T_s"] += (df.loc[i, "EJoules"]) / (ice_layer * ci)
-                    df.loc[i, "delta_T_s"] += conduct(df.loc[i-1, 'T_s'], df.loc[i, "TotalE"])
+                    if i-start<10:
+                        df.loc[i, "delta_T_s"] += (df.loc[i, "EJoules"]) / (ice_layer * ci)
+
+                    else:
+                        T_layers = conduct(df["T_s"][i - 9:i + 1].values, df.loc[i, "TotalE"])
 
                 logger.debug(
                     "Ice made after energy neg is %s thick at temp %s",
@@ -413,32 +430,27 @@ def icestupa(df, fountain, surface):
 
             else:
 
-                # Heating Ice
-                # df.loc[i, "delta_T_s"] += (df.loc[i, "EJoules"]) / (ice_layer * ci)
-                df.loc[i, "delta_T_s"] += conduct(df.loc[i-1, 'T_s'], df.loc[i, "TotalE"])
-
-                # print(df.loc[i-1, 'T_s'], df.loc[i, "TotalE"])
-
-                # print((df.loc[i, "TotalE"]) / (dx * rho_i * ci), df.loc[i, "delta_T_s"], df.loc[i, "When"])
-
                 """Hot Ice"""
-                if (df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]) > 0:
+                if T_layers[0] > 0:
 
                     # Melting Ice by Temperature
                     df.loc[i, "solid"] -= (
-                        (ice_layer * ci)
-                        * (df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"])
-                        / Lf
+                        (df.loc[i, "EJoules"])
+                        / (Lf*rho_i*df.loc[i, "SA"])
                     )
 
                     df.loc[i, "melted"] += (
-                        (ice_layer * ci)
-                        * (df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"])
-                        / Lf
+                        (df.loc[i, "EJoules"])
+                        / (Lf*rho_i*df.loc[i, "SA"])
                     )
 
-                    df.loc[i - 1, "T_s"] = 0
-                    df.loc[i, "delta_T_s"] = 0
+                    T_layers[0] = 0
+
+                else:
+
+                    T_layers = conduct(df["T_s"][i - 9:i + 1].values, df.loc[i, "TotalE"])
+
+                    df.loc[i, "delta_T_s"] += T_layers[0] - df.loc[i - 1, "T_s"]
 
                 logger.debug(
                     "Ice melted is %s thick at %s",
@@ -447,7 +459,10 @@ def icestupa(df, fountain, surface):
                 )
 
             """ Quantities of all phases """
-            df.loc[i, "T_s"] = df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]
+            if i-start < 10:
+                df.loc[i, "T_s"] = df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]
+            else:
+                df.loc[i, "T_s"] = T_layers[0]
             df.loc[i, "meltwater"] = df.loc[i - 1, "meltwater"] + df.loc[i, "melted"]
             df.loc[i, "ice"] = (
                 df.loc[i - 1, "ice"]
@@ -464,14 +479,14 @@ def icestupa(df, fountain, surface):
                 i, "ppt"
             ] / surface["snow_fall_density"]
 
-            logger.critical(
+            logger.info(
                 "Ice volume is %s and temperature is %s at %s",
                 df.loc[i, "ice"],
                 df.loc[i, "T_s"],
                 df.loc[i, "When"],
             )
 
-    df = df[start:i]
+    # df = df[start:i]
 
     print("Ice Volume Max", float(df["iceV"].max()))
     print(

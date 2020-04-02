@@ -78,7 +78,7 @@ T = np.zeros((X.shape))
 
 # set the initial temperature profile of the wall
 for i in range(len(x)):
-   T[i, 0] = T_initial
+   T[i, 0] = T_initial + i
 
 # Debug stuff, uncomment if needed:
 # print X.shape
