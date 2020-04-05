@@ -5,7 +5,6 @@ import time
 import logging
 from src.data.config import fountain, surface, site, option, dates, folders
 from tqdm import tqdm
-import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -21,7 +20,7 @@ def conduct(T_initial, Q_dot_in = 0):
     h = 0.0  # convective heat transfer coefficient in W / (m^2 * K)
 
     T_initial = T_initial  # initial temperature in Kelvin
-    T_inf = 273.15
+    # T_inf = 273.15
 
     L = 0.01  # thickness of the entire wall in meters
     N = 10  # number of discrete wall segments
@@ -60,13 +59,16 @@ def conduct(T_initial, Q_dot_in = 0):
     for j in range(len(timesamps) - 1):
         # get the outside wall temperature and heat flow at current time
         T_out = T[len(x) - 1, j]
-        Q_dot_out = sigma * A * (pow(T_out, 4) - pow(T_inf, 4)) + h * A * (T_out - T_inf)
+
+        # Q_dot_out = sigma * A * (pow(T_out, 4) - pow(T_inf, 4)) + h * A * (T_out - T_inf)
+        Q_dot_out = 0
 
         # now compute temperature at the outside boundary for the next time step
         T[len(x)-1, j+1] = T_out + simfac * (T[len(x)-2, j] - T_out - heatfac * Q_dot_out)
 
         # and now compute temperature at the inside boundary for the next time step
         T[0, j + 1] = T[0, j] + simfac * (T[1, j] - T[0, j] + heatfac * Q_dot_in)
+
         # now loop through the interior elements to get their temp for the next time
         for ctr in range(len(x) - 2):
             T[ctr + 1, j + 1] = T[ctr + 1, j] + simfac * (
