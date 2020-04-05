@@ -113,6 +113,8 @@ print(T[:,- 1].mean())
 fig1 = plt.figure()
 ax = fig1.add_subplot(111, projection='3d')
 foo = ax.plot_surface(X*100, TIME/3600, T)
+
+
 ax.set_xlabel('x (cm)')
 ax.set_ylabel('time (hr)')
 ax.set_zlabel('temperature (K)')

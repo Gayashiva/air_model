@@ -27,7 +27,7 @@ L=10  #[mm] -Length of domain
 t_max= 5*60  #[s] -maximum time
 
 #-----NUMERICAL VALUES------ #
-n=1e3   #number of iterations
+n=1e4   #number of iterations
 dx=0.1   #Steplength in x
 dt=dx**2/(2*alpha)   #Steplength in t
 ds=dx/(n*beta)   #Increment size for moving boundary when absorbing one walker.
