@@ -86,7 +86,7 @@ def stefan(Q_dot_in = 0):
     c = 4.2e3  # specific heat [J/(kg*K)]
     alpha = K / (rho * c)  # thermal diffusivity [mm^/s]
     beta = c / l  # [1/K]
-    L = 20  # [mm] -Length of domain
+    L = 10  # [mm] -Length of domain
     t_max = 5 * 60  # [s] -maximum time
 
     # -----NUMERICAL VALUES------ #
@@ -99,7 +99,7 @@ def stefan(Q_dot_in = 0):
     T = np.zeros((N_x, N_t))  # Matrix representing T(x,t)
     s_vector = np.zeros((N_t))  # Vector representing moving boundary s(t)
     t_j = 0
-    s_i = 1
+    s_i = 0
     s = dx
 
     Q = Q_dot_in * 1e-6  # W/mm2
@@ -489,14 +489,14 @@ def icestupa(df, fountain, surface):
 
                     melted = stefan(Q)
 
-                    # Melting Ice by Temperature
-                    df.loc[i, "solid"] -= (
-                        (rho_i * melted * df.loc[i, "SA"])
-                    )
-
-                    df.loc[i, "melted"] += (
-                        (rho_i * melted * df.loc[i, "SA"])
-                    )
+                    # # Melting Ice by Temperature
+                    # df.loc[i, "solid"] -= (
+                    #     (rho_i * melted * df.loc[i, "SA"])
+                    # )
+                    #
+                    # df.loc[i, "melted"] += (
+                    #     (rho_i * melted * df.loc[i, "SA"])
+                    # )
 
                     new = (
                         ( melted * 1000 )
@@ -509,28 +509,28 @@ def icestupa(df, fountain, surface):
                             * 1000
                     )
 
-                    print(old, new)
+                    print(old, new, (df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]))
 
-                    # # Melting Ice by Temperature
-                    # df.loc[i, "solid"] -= (
-                    #         (ice_thickness * c_i * df.loc[i, "SA"])
-                    #         * (-(df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]))
-                    #         / (-L_f)
-                    # )
-                    #
-                    # df.loc[i, "melted"] += (
-                    #         (ice_thickness * c_i * df.loc[i, "SA"])
-                    #         * (-(df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]))
-                    #         / (-L_f)
-                    # )
+                    # Melting Ice by Temperature
+                    df.loc[i, "solid"] -= (
+                            (ice_thickness * c_i * df.loc[i, "SA"])
+                            * (-(df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]))
+                            / (-L_f)
+                    )
+
+                    df.loc[i, "melted"] += (
+                            (ice_thickness * c_i * df.loc[i, "SA"])
+                            * (-(df.loc[i - 1, "T_s"] + df.loc[i, "delta_T_s"]))
+                            / (-L_f)
+                    )
 
                     df.loc[i - 1, "T_s"] = 0
                     df.loc[i, "delta_T_s"] = 0
 
-                logger.debug(
+                logger.info(
                     "Ice melted because %s is %s thick at %s",
-                    Q,
-                    df.loc[i, "solid"],
+                    df.loc[i, "TotalE"],
+                    df.loc[i, "melted"],
                     df.loc[i, "When"],
                 )
 

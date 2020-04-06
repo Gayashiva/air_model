@@ -18,16 +18,22 @@ from src.data.config import site, dates, option, folders, fountain, surface
 
 #-----PHYSICAL PARAMETERS------#
 l=334e3  #specific latent heat [J/kg]
+
 rho=1e-6  #density [kg/mm^3]
 K=0.6e-3  #thermal conductivity [W/(mm*K)]
 c=4.2e3  #specific heat [J/(kg*K)]
+
+# rho=0.916e-6  #density [kg/mm^3]
+# K=2.22e-3  #thermal conductivity [W/(mm*K)]
+# c=2.1e3  #specific heat [J/(kg*K)]
+
 alpha=K/(rho*c)  #thermal diffusivity [mm^/s]
 beta=c/l  #[1/K]
-L=10  #[mm] -Length of domain
-t_max= 5*60  #[s] -maximum time
+L=30  #[mm] -Length of domain
+t_max= 5 * 60  #[s] -maximum time
 
 #-----NUMERICAL VALUES------ #
-n=1e4   #number of iterations
+n=1e2   #number of iterations
 dx=0.1   #Steplength in x
 dt=dx**2/(2*alpha)   #Steplength in t
 ds=dx/(n*beta)   #Increment size for moving boundary when absorbing one walker.
@@ -36,11 +42,12 @@ N_t= math.ceil(t_max/dt)   #Number of points in time domain.
 T= np.zeros((N_x,N_t))   #Matrix representing T(x,t)
 s_vector= np.zeros((N_t))   #Vector representing moving boundary s(t)
 t_j=0
-s_i=1
+s_i=0
 s=dx
 
-Q = 50e-6 # W/mm2
-T_0=  Q * dx/K #[degree C] -Temperature at fixed boundary
+# Q = 100e-6 # W/mm2
+# T_0=  Q * dx/K #[degree C] -Temperature at fixed boundary
+T_0 = 0.1
 print(T_0)
 
 pbar = tqdm(total=N_t)

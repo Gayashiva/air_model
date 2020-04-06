@@ -18,7 +18,7 @@ surface = dict(
     a_i=0.35,  # Albedo of Ice a_i
     a_s=0.85,  # Albedo of Fresh Snow a_s
     decay_t=10,  # Albedo dry decay rate decay_t_d
-    dx=0.001,    # Ice thickness
+    dx=0.01,    # Ice thickness
     z0mi=0.0017,  # Ice Momentum roughness length
     z0hi=0.0017,  # Ice Scalar roughness length
     snow_fall_density= 250, # Snowfall density
@@ -64,7 +64,7 @@ if site == "schwarzsee":
 
     dates = dict(
         start_date=datetime(2019, 1, 30, 17),
-        end_date=datetime(2019, 2, 2, 18),
+        end_date=datetime(2019, 2, 20, 18),
         fountain_off_date=datetime(2019, 3, 10, 18),
     )
     fountain = dict(
