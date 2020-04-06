@@ -18,6 +18,7 @@ surface = dict(
     a_i=0.35,  # Albedo of Ice a_i
     a_s=0.85,  # Albedo of Fresh Snow a_s
     decay_t=10,  # Albedo dry decay rate decay_t_d
+    dx=0.001,    # Ice thickness
     z0mi=0.0017,  # Ice Momentum roughness length
     z0hi=0.0017,  # Ice Scalar roughness length
     snow_fall_density= 250, # Snowfall density
