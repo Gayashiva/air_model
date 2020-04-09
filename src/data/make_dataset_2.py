@@ -45,34 +45,15 @@ if __name__ == '__main__':
     df_in["WaterFlow"] = pd.to_numeric(df_in["WaterFlow"], errors="coerce")
     df_in["WS"] = pd.to_numeric(df_in["WS"], errors="coerce")
     df_in["SnowHeight"] = pd.to_numeric(df_in["SnowHeight"], errors="coerce")
-    for i in range(1,5):
+    for i in range(1,9):
         col = 'Tice_Avg(' + str(i) + ')'
         df_in[col] = pd.to_numeric(df_in[col], errors="coerce")
 
     # Errors
     df_in['H'] = df_in['H']/1000
-    # df_in['H'] = df_in['H'].apply(lambda x: [y if y < 1000 else np.NAN for y in x])
+    df_in['H'] = df_in['H'].apply(lambda x: x if abs(x) < 500 else np.NAN)
 
     df_in = df_in.sort_values(by='TIMESTAMP')
-
-    # cols = df_in.columns[58:]
-    # df_in['Tice'] = df_in[cols].astype(str).apply(','.join, axis=1)
-    #
-    # df_in['Tice2'] = 0
-    # df_in['Tice2'] = df_in['Tice2'].astype('object')
-    # ctr = 0
-    # for i in df_in['Tice']:
-    #
-    #     list = i.split(",")
-    #     print(list)
-    #     li = []
-    #     for j in list:
-    #         print(j)
-    #         li.append(float(j))
-    #     print(li[1])
-    #     df_in.at[ctr, 'Tice2'] = li
-    #     ctr = ctr + 1
-
 
     # df_in = df_in[
     #     ["TIMESTAMP", "T_probe_Avg", "RH_probe_Avg", "WS", "WaterFlow", "NETRAD", "H", "SnowHeight", "Tice"]
@@ -168,12 +149,13 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax1 = fig.add_subplot(111)
     # y1 = df_in["Tice"]
-    for i in range(1,9):
+    for i in range(1,3):
         col = 'Tice_Avg(' + str(i) + ')'
         plt.plot(x, df_in[col], label='id %s' % i)
     plt.legend()
 
     ax1.set_ylabel("Ice Temperatures")
+    ax1.set_ylim([-1,3])
     ax1.grid()
 
     # format the ticks
