@@ -61,8 +61,16 @@ dfo2 = pd.read_csv(filename2, sep=",")
 
 print(dfo)
 
-x1 = dfo.dx * 1000
-y1 = dfo.Max_IceV
+# x1 = dfo.dx * 1000
+y1 = dataframe["temperature"]
+print(y1)
+
+fig, ax = plt.subplots()
+ax.plot(dataframe)
+ax.set_ylabel("Max Ice Volume[$m3$]")
+ax.set_xlabel("Ice Layer thickness[mm]")
+ax.grid()
+plt.show()
 
 # x2 = dfo.dx * 1000
 # y2 = dfo.max_melt_thickness * 1000
@@ -70,8 +78,6 @@ y1 = dfo.Max_IceV
 # x2 = dfo2.dx
 # y2 = dfo2.max_melt_thickness * -1
 
-fig, ax = plt.subplots()
-ax.scatter(x1, y1)
 # ax.scatter(x2, y2)
 # lims = [
 #     np.min([ax.get_xlim(), ax.get_ylim()]),  # min of both axes
@@ -83,10 +89,6 @@ ax.scatter(x1, y1)
 # ax.set_aspect('equal')
 # ax.set_xlim(lims)
 # ax.set_ylim(lims)
-ax.set_ylabel("Max Ice Volume[$m3$]")
-ax.set_xlabel("Ice Layer thickness[mm]")
-ax.grid()
-plt.show()
 
 # # Plots
 # fig = plt.figure()

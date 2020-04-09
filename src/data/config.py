@@ -6,7 +6,7 @@ dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # site = input("Input the Field Site Name: ") or "guttannen"
 
-site = "schwarzsee"
+site = "schwarzsee_2020"
 option = "schwarzsee"
 
 print("Site is", site)
@@ -18,7 +18,7 @@ surface = dict(
     a_i=0.35,  # Albedo of Ice a_i
     a_s=0.85,  # Albedo of Fresh Snow a_s
     decay_t=10,  # Albedo dry decay rate decay_t_d
-    dx=1e-01,   #Ice layer thickness
+    dx=1e-02,   #Ice layer thickness
     z0mi=0.0017,  # Ice Momentum roughness length
     z0hi=0.0017,  # Ice Scalar roughness length
     snow_fall_density= 250, # Snowfall density
@@ -54,6 +54,30 @@ surface = dict(
 #         rain_temp=1,  # Temperature condition for liquid precipitation
 #         h_aws=3,  # m height of AWS
 #     )
+
+if site == "schwarzsee_2020":
+    folders = dict(
+        dirname=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+        input_folder=os.path.join(dir, "data/interim/schwarzsee_2020/"),
+        output_folder=os.path.join(dir, "data/processed/schwarzsee_2020/"),
+        sim_folder=os.path.join(dir, "data/processed/schwarzsee_2020/simulations/"),
+        data=os.path.join(dir, "data/raw/CardConvert/"),
+    )
+
+    dates = dict(
+        start_date=datetime(2019, 1, 30, 17),
+        end_date=datetime(2019, 3, 20, 18),
+        fountain_off_date=datetime(2019, 3, 10, 18),
+    )
+    fountain = dict(
+        aperture_f=0.005,  # Fountain aperture diameter
+        h_f=1.35,  # Fountain steps h_f
+        discharge=3.58,  # Fountain on discharge
+        crit_temp=-5,  # Fountain runtime temperature
+        latitude = 46.693723,
+        longitude = 7.297543,
+        utc_offset = 1,
+    )
 
 if site == "schwarzsee":
     folders = dict(
