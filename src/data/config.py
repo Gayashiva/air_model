@@ -65,13 +65,13 @@ if site == "schwarzsee_2020":
     )
 
     dates = dict(
-        start_date=datetime(2019, 1, 30, 17),
-        end_date=datetime(2019, 3, 20, 18),
-        fountain_off_date=datetime(2019, 3, 10, 18),
+        start_date=datetime(2019, 12, 15),
+        end_date=datetime(2020, 2, 20),
+        fountain_off_date=datetime(2020, 2, 10),
     )
     fountain = dict(
         aperture_f=0.005,  # Fountain aperture diameter
-        h_f=1.35,  # Fountain steps h_f
+        h_f=4,  # Fountain steps h_f
         discharge=3.58,  # Fountain on discharge
         crit_temp=-5,  # Fountain runtime temperature
         latitude = 46.693723,
