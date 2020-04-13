@@ -30,7 +30,7 @@ def icestupa(df, fountain, surface):
     bc = 5.670367 * math.pow(10, -8)  # Stefan Boltzman constant
 
     """Miscellaneous"""
-    time_steps = 5 * 60  # s Model time steps
+    time_steps = 30 * 60  # s Model time steps
     p0 = 1013  # Standard air pressure hPa
     ftl = 0  # Fountain flight time loss ftl
 
@@ -298,7 +298,7 @@ def icestupa(df, fountain, surface):
                 )
                 df.loc[i, "delta_T_s"] = -df.loc[i - 1, "T_s"]
 
-                logger.debug(
+                logger.critical(
                     "Ice layer made %s thick ice at %s",
                     df.loc[i, "solid"],
                     df.loc[i, "When"],
@@ -339,7 +339,7 @@ def icestupa(df, fountain, surface):
                         ice_thickness * c_i
                     )
 
-                logger.debug(
+                logger.critical(
                     "Ice made after energy neg is %s thick at temp %s",
                     round(df.loc[i, "solid"]),
                     df.loc[i - 1, "T_s"],
@@ -406,6 +406,7 @@ def icestupa(df, fountain, surface):
             )
 
     df = df[start:i]
+
     Efficiency = float(
         (df["meltwater"].tail(1) + df["ice"].tail(1))
         / (df["sprayed"].tail(1) + df["ppt"].sum() + df["deposition"].sum())

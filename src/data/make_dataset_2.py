@@ -4,14 +4,11 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from matplotlib.backends.backend_pdf import PdfPages
-from pandas.plotting import register_matplotlib_converters
 import math
 import time
-from pathlib import Path
 from tqdm import tqdm
 import os
 import glob
-import logging
 from src.data.config import site, dates, option, folders, fountain, surface
 
 def projectile_xy(v, hs=0.0, g=9.8):
@@ -107,7 +104,7 @@ if __name__ == '__main__':
 
     path = folders["data"]  # use your path
     all_files = glob.glob(
-        os.path.join(path, "TOA5__Flux_CSFormat_*.dat"))  # advisable to use os.path.join as this makes concatenation OS independent
+        os.path.join(path, "TOA5__FluxB_CSFormat_*.dat"))  # advisable to use os.path.join as this makes concatenation OS independent
 
     li = []
     for filename in all_files:
@@ -119,7 +116,7 @@ if __name__ == '__main__':
     df = pd.concat(li, axis=0, ignore_index=True)
 
     df["TIMESTAMP"] = pd.to_datetime(df["TIMESTAMP"], format='%Y-%m-%d %H:%M:%S')
-    df["H"] = pd.to_numeric(df["H"], errors="coerce")
+    df["HB"] = pd.to_numeric(df["HB"], errors="coerce")
     df["SW_IN"] = pd.to_numeric(df["SW_IN"], errors="coerce")
     df["LW_IN"] = pd.to_numeric(df["LW_IN"], errors="coerce")
     df["amb_press_Avg"] = pd.to_numeric(df["amb_press_Avg"], errors="coerce")
@@ -129,23 +126,24 @@ if __name__ == '__main__':
     df["RH_probe_Avg"] = pd.to_numeric(df["RH_probe_Avg"], errors="coerce")
     df["Waterpressure"] = pd.to_numeric(df["Waterpressure"], errors="coerce")
     df["WaterFlow"] = pd.to_numeric(df["WaterFlow"], errors="coerce")
-    df["WS"] = pd.to_numeric(df["WS"], errors="coerce")
+    df["WSB"] = pd.to_numeric(df["WSB"], errors="coerce")
     df["SnowHeight"] = pd.to_numeric(df["SnowHeight"], errors="coerce")
 
-    for i in range(1,9):
-        col = 'Tice_Avg(' + str(i) + ')'
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    # for i in range(1,9):
+    #     col = 'Tice_Avg(' + str(i) + ')'
+    #     df[col] = pd.to_numeric(df[col], errors="coerce")
 
     mask = (df["TIMESTAMP"] >= dates["start_date"]) & (df["TIMESTAMP"] <= dates["end_date"])
     df = df.loc[mask]
     df = df.reset_index()
 
     # Errors
-    df['H'] = df['H'] / 1000
+    df['HB'] = df['HB'] / 1000
+    df['HB'] = df['HB'].apply(lambda x: x if abs(x) < 500 else np.NAN)
     df['DRad'] = 0
     df['Prec'] = 0
     df['e_probe'] = df['e_probe'] * 10
-    df['H'] = df['H'].apply(lambda x: x if abs(x) < 500 else np.NAN)
+
 
     df = df.sort_values(by='TIMESTAMP')
 
@@ -156,11 +154,12 @@ if __name__ == '__main__':
             "LW_IN": "oli000z0",
             "SW_IN": "Rad",
             "amb_press_Avg": "p_a",
-            "WS": "v_a",
+            "WSB": "v_a",
             "e_probe": "vp_a",
             "WaterFlow": "Discharge",
             "T_probe_Avg": "T_a",
             "RH_probe_Avg": "RH",
+            "HB": "H_eddy",
         },
         inplace=True,
     )
@@ -169,6 +168,8 @@ if __name__ == '__main__':
 
         if np.isnan(df.loc[i, "Discharge"]) or np.isinf(df.loc[i, "Discharge"]):
             df.loc[i, "Discharge"] = df.loc[i - 1, "Discharge"]
+        if np.isnan(df.loc[i, "H_eddy"]) or np.isinf(df.loc[i, "H_eddy"]):
+            df.loc[i, "H_eddy"] = df.loc[i - 1, "H_eddy"]
 
         """Solar Elevation Angle"""
         df.loc[i, "SEA"] = getSEA(
@@ -178,9 +179,13 @@ if __name__ == '__main__':
             fountain["utc_offset"],
         )
 
+    df = df.set_index("When").resample("30T").ffill().reset_index()
+
     df_out = df[
-        ["When", "T_a", "RH", "v_a", "Discharge", "Rad", "DRad", "Prec", "p_a", "SEA", "vp_a"]
+        ["When", "T_a", "RH", "v_a", "Discharge", "Rad", "DRad", "Prec", "p_a", "SEA", "vp_a", "H_eddy"]
     ]
+
+    print(df_out.head())
 
     df_out = df_out.round(5)
 
@@ -200,8 +205,8 @@ if __name__ == '__main__':
 
     """Albedo Decay"""
     surface["decay_t"] = (
-            surface["decay_t"] * 24 * 60 / 5
-    )  # convert to 5 minute time steps
+            surface["decay_t"] * 24 * 60 / 30
+    )  # convert to 30 minute time steps
     s = 0
     f = 0
 
