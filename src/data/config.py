@@ -24,6 +24,7 @@ surface = dict(
     snow_fall_density= 250, # Snowfall density
     rain_temp=1, # Temperature condition for liquid precipitation
     h_aws = 3,  # m height of AWS
+    hw_aws = 4,  # m height of AWS
 )
 
 # if max :

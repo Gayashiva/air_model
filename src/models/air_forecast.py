@@ -270,8 +270,8 @@ def icestupa(df, fountain, surface):
                 * df.loc[i, "v_a"]
                 * (df.loc[i, "T_a"] - df.loc[i - 1, "T_s"])
                 / (
-                    np.log(surface["h_aws"] / surface["z0mi"])
-                    * np.log(surface["h_aws"] / surface["z0hi"])
+                    np.log(surface["hw_aws"] / surface["z0mi"])
+                    * np.log(surface["hw_aws"] / surface["z0hi"])
                 )
             )
 
@@ -298,7 +298,7 @@ def icestupa(df, fountain, surface):
                 )
                 df.loc[i, "delta_T_s"] = -df.loc[i - 1, "T_s"]
 
-                logger.critical(
+                logger.debug(
                     "Ice layer made %s thick ice at %s",
                     df.loc[i, "solid"],
                     df.loc[i, "When"],
@@ -339,7 +339,7 @@ def icestupa(df, fountain, surface):
                         ice_thickness * c_i
                     )
 
-                logger.critical(
+                logger.debug(
                     "Ice made after energy neg is %s thick at temp %s",
                     round(df.loc[i, "solid"]),
                     df.loc[i - 1, "T_s"],
