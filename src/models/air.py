@@ -198,7 +198,7 @@ class Icestupa:
 
         return s , f
 
-    def derive_parameters(self):
+    def derive_parameters_old(self):
 
         missing = [
             "a",
@@ -366,6 +366,22 @@ class Icestupa:
         y1 = self.df.a
         ax1.plot(x, y1, "k-", linewidth=0.5)
         ax1.set_ylabel("Albedo")
+        ax1.grid()
+
+        # format the ticks
+        ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+        ax1.xaxis.set_minor_locator(mdates.DayLocator())
+        ax1.grid()
+        fig.autofmt_xdate()
+        pp.savefig(bbox_inches="tight")
+        plt.clf()
+
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
+        y1 = self.df.LW_in
+        ax1.plot(x, y1, "k-", linewidth=0.5)
+        ax1.set_ylabel("LW_in")
         ax1.grid()
 
         # format the ticks
@@ -1116,7 +1132,7 @@ if __name__ == '__main__':
 
     schwarzsee.derive_parameters()
 
-    schwarzsee.melt_freeze()
+    # schwarzsee.melt_freeze()
 
     total = time.time() - start
 

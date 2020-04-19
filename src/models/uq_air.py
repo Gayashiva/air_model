@@ -63,6 +63,47 @@ class Icestupa(un.Model):
     p0 = 1013  # Standard air pressure hPa
     vp_w = 6.112  # Saturation Water vapour pressure
 
+    constants = dict(
+        L_s=2848 * 1000,  # J/kg Sublimation
+        L_e=2514 * 1000,  # J/kg Evaporation
+        L_f=334 * 1000,  # J/kg Fusion
+        c_w=4.186 * 1000,  # J/kgC Specific heat water
+        c_i=2.108 * 1000,  # J/kgC Specific heat ice
+        rho_w=1000,  # Density of water
+        rho_i=916,  # Density of Ice rho_i
+        rho_a=1.29,  # kg/m3 air density at mean sea level
+        k=0.4,  # Van Karman constant
+        bc=5.670367 * math.pow(10, -8),  # Stefan Boltzman constant
+
+        time_steps=5 * 60,  # s Model time steps
+        vp_w=6.112,  # Saturation Water vapour pressure
+        p0=1013,  # Standard air pressure hPa
+
+    )
+
+    surface = dict(
+        ie=0.95,  # Ice Emissivity ie
+        a_i=0.35,  # Albedo of Ice a_i
+        a_s=0.85,  # Albedo of Fresh Snow a_s
+        decay_t=10,  # Albedo decay rate decay_t_d
+        dx=1e-02,  # Ice layer thickness
+        z0mi=0.0017,  # Ice Momentum roughness length
+        z0hi=0.0017,  # Ice Scalar roughness length
+        snow_fall_density=250,  # Snowfall density
+        rain_temp=1,  # Temperature condition for liquid precipitation
+        h_aws=3,  # m height of AWS
+    )
+
+    fountain = dict(
+        aperture_f=0.005,  # Fountain aperture diameter
+        theta_f=45,  # Fountain aperture diameter
+        h_f=1.35,  # Fountain steps h_f
+        latitude=46.693723,
+        longitude=7.297543,
+        utc_offset=1,
+        ftl=0  # Fountain flight time loss ftl,
+    )
+
     """Model constants"""
     time_steps=5 * 60  # s Model time steps
 
@@ -98,6 +139,8 @@ class Icestupa(un.Model):
         self.dx = 1e-02  # Ice layer thickness
         self.h_aws = 3  # m height of AWS
 
+
+
         self.site = site
 
         self.folders = dict(
@@ -128,7 +171,7 @@ class Icestupa(un.Model):
             fountain_off_date=self.df.loc[fountain_off, "When"],
         )
 
-        self.df = self.df[start:]
+        self.df = self.df[start:fountain_off]
         self.df = self.df.reset_index(drop=True)
 
     def SEA(self, date):
@@ -793,6 +836,22 @@ class Icestupa(un.Model):
         pp.savefig(bbox_inches="tight")
         plt.clf()
 
+        fig = plt.figure()
+        ax1 = fig.add_subplot(111)
+        y1 = self.df.LW_in
+        ax1.plot(x, y1, "k-", linewidth=0.5)
+        ax1.set_ylabel("LW_in")
+        ax1.grid()
+
+        # format the ticks
+        ax1.xaxis.set_major_locator(mdates.WeekdayLocator())
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter("%b %d"))
+        ax1.xaxis.set_minor_locator(mdates.DayLocator())
+        ax1.grid()
+        fig.autofmt_xdate()
+        pp.savefig(bbox_inches="tight")
+        plt.clf()
+
         pp.close()
 
         """Input Plots"""
@@ -1053,27 +1112,27 @@ class Icestupa(un.Model):
 
         """Initialize"""
         self.r_mean = self.df['r_f'].replace(0, np.NaN).mean()
-        self.df.loc[1, "r_ice"] = self.r_mean
-        self.df.loc[1, "h_ice"] = self.dx
-        self.df.loc[1, "iceV"] = self.dx * math.pi * self.df.loc[0, "r_ice"] ** 2
+        self.df.loc[0, "r_ice"] = self.r_mean
+        self.df.loc[0, "h_ice"] = self.dx
+        self.df.loc[0, "iceV"] = self.dx * math.pi * self.df.loc[0, "r_ice"] ** 2
 
         for row in tqdm(self.df[1:].itertuples(), total=self.df.shape[0]):
             i = row.Index
 
             # Ice Melted
-            if self.df.loc[i, "iceV"] <= 0:
-                self.df.loc[i, "solid"] = 0
-                self.df.loc[i, "ice"] = 0
-                self.df.loc[i, "iceV"] = 0
+            if self.df.loc[i - 1, "iceV"] <= 0:
+                self.df.loc[i - 1, "solid"] = 0
+                self.df.loc[i - 1, "ice"] = 0
+                self.df.loc[i - 1, "iceV"] = 0
                 if self.df.Discharge[i:].sum() == 0:  # If ice melted after fountain run
                     break
                 else:  # If ice melted in between fountain run
                     state = 0
 
-            self.surface_area(i + 1)
+            self.surface_area(i)
 
             # Precipitation to ice quantity
-            if (self.df.loc[i + 1, "T_a"] < self.rain_temp) and self.df.loc[i, "Prec"] > 0:
+            if (row.T_a < self.rain_temp) and self.df.loc[i, "Prec"] > 0:
 
                 if row.When <= self.dates['fountain_off_date']:
                     self.df.loc[i, "ppt"] = (
@@ -1167,7 +1226,79 @@ class Icestupa(un.Model):
 
         return self.df.index.values * 5 / (60 * 24), self.df["iceV"].values
 
+    def derive_parameters_old(self):
 
+        missing = [
+            "a",
+            "cld",
+            "SEA",
+            "vp_a",
+            "r_f",
+            "LW_in",
+        ]
+        for col in missing:
+            if col in list(self.df.columns):
+                missing = missing.remove(col)
+            else:
+                self.df[col] = 0
+
+        """ Fountain Spray radius """
+        Area = math.pi * math.pow(self.fountain["aperture_f"], 2) / 4
+
+
+        """Albedo Decay"""
+        self.surface["decay_t"] = (
+                self.surface["decay_t"] * 24 * 60 * 60 / self.constants['time_steps']
+        )  # convert to 5 minute time steps
+        s = 0
+        f = 0
+
+        for i in tqdm(range(1, self.df.shape[0])):
+
+            """Solar Elevation Angle"""
+            self.df.loc[i, "SEA"] = self.SEA(self.df.loc[i, "When"])
+
+            """ Vapour Pressure"""
+            if "vp_a" in missing:
+                self.df.loc[i, "vp_a"] = (6.11 * math.pow(10, 7.5 * self.df.loc[i - 1, "T_a"] / (self.df.loc[i - 1, "T_a"] + 237.3)) * self.df.loc[i, "RH"] / 100)
+
+            """LW incoming"""
+            if "LW_in" in missing:
+
+                # Cloudiness from diffuse fraction
+                if self.df.loc[i, "SW_direct"] + self.df.loc[i, "SW_diffuse"] > 1:
+                    self.df.loc[i, "cld"] = self.df.loc[i, "SW_diffuse"] / (
+                            self.df.loc[i, "SW_direct"] + self.df.loc[i, "SW_diffuse"]
+                    )
+                else:
+                    # Night Cloudiness average of last 8 hours
+                    if i - 96 > 0:
+                        for j in range(i - 96, i):
+                            self.df.loc[i, "cld"] += self.df.loc[j, "cld"]
+                        self.df.loc[i, "cld"] = self.df.loc[i, "cld"] / 96
+                    else:
+                        for j in range(0, i):
+                            self.df.loc[i, "cld"] += self.df.loc[j, "cld"]
+                        self.df.loc[i, "cld"] = self.df.loc[i, "cld"] / i
+
+                self.df.loc[i, "e_a"] = ( 1.24 * math.pow(abs(self.df.loc[i, "vp_a"] / (self.df.loc[i, "T_a"] + 273.15)), 1 / 7)
+                                   ) * (1 + 0.22 * math.pow(self.df.loc[i, "cld"], 2))
+
+                self.df.loc[i, "LW_in"] = self.df.loc[i, "e_a"] * self.constants['bc'] * math.pow(
+                        self.df.loc[i, "T_a"] + 273.15, 4
+                    )
+
+            """ Fountain Spray radius """
+            v_f = self.df.loc[i, "Discharge"] / (60 * 1000 * Area)
+            self.df.loc[i, "r_f"] = self.projectile_xy(v_f, self.fountain['theta_f'])
+
+            s,f = self.albedo(i, s, f)
+
+        self.df = self.df.round(5)
+
+        self.df.to_csv(self.folders["input_folder"] + "model_input.csv")
+
+        self.print_input()
 
 
 
@@ -1237,6 +1368,7 @@ if __name__ == '__main__':
     schwarzsee = Icestupa()
 
     # schwarzsee.derive_parameters()
+    schwarzsee.derive_parameters_old()
 
     schwarzsee.run()
 
