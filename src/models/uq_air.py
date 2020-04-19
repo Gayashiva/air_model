@@ -305,7 +305,7 @@ class Icestupa(un.Model):
 
         for row in tqdm(self.df[1:].itertuples(), total=self.df.shape[0]):
             """Solar Elevation Angle"""
-            self.df.at[row.Index, 'SEA'] = self.SEA(row.When)
+            self.df.loc[row.Index, 'SEA'] = self.SEA(row.When)
 
             """ Fountain Spray radius """
             v_f = row.Discharge / (60 * 1000 * Area)
@@ -1253,10 +1253,11 @@ class Icestupa(un.Model):
         s = 0
         f = 0
 
-        for i in tqdm(range(1, self.df.shape[0])):
+        for row in tqdm(self.df[1:].itertuples(), total=self.df.shape[0]):
+            i = row.Index
 
             """Solar Elevation Angle"""
-            self.df.loc[i, "SEA"] = self.SEA(self.df.loc[i, "When"])
+            self.df.loc[i, "SEA"] = self.SEA(row.When)
 
             """ Vapour Pressure"""
             if "vp_a" in missing:
