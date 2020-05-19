@@ -613,8 +613,8 @@ class Icestupa:
     def thickness_surface_area(self, i):
 
         theta_slope = math.atan(self.df.loc[i-1, "h_r"])
-        dr = self.df.loc[i-1, "thickness"]/ math.sin(theta_slope)
-        dh = self.df.loc[i-1, "thickness"]/ math.cos(theta_slope)
+        dr = self.df.loc[i-1, "thickness"]
+        dh = self.df.loc[i-1, "thickness"]
 
         self.df.loc[i, "r_ice"] = self.df.loc[i - 1, "r_ice"] + dr
         self.df.loc[i, "h_ice"] = self.df.loc[i - 1, "h_ice"] + dh
