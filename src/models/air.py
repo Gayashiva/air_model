@@ -610,6 +610,29 @@ class Icestupa:
                 )
             )
 
+    def thickness_surface_area(self, i):
+
+        theta_slope = math.atan(self.df.loc[i-1, "h_r"])
+        dr = self.df.loc[i-1, "thickness"]/ math.sin(theta_slope)
+        dh = self.df.loc[i-1, "thickness"]/ math.cos(theta_slope)
+
+        self.df.loc[i, "r_ice"] = self.df.loc[i - 1, "r_ice"] + dr
+        self.df.loc[i, "h_ice"] = self.df.loc[i - 1, "h_ice"] + dh
+
+        self.df.loc[i, "h_r"] = self.df.loc[i, "h_ice"]/self.df.loc[i, "r_ice"]
+
+        self.df.loc[i, "SA"] = (
+                math.pi
+                * self.df.loc[i, "r_ice"]
+                * math.pow(
+            (
+                    math.pow(self.df.loc[i, "r_ice"], 2)
+                    + math.pow((self.df.loc[i, "h_ice"]), 2)
+            ),
+            1 / 2,
+        )
+        )
+
 
         self.df.loc[i, "SRf"] = (
             0.5
@@ -621,6 +644,8 @@ class Icestupa:
             * 0.5
             * math.sin(self.df.loc[i, "SEA"])
         ) / self.df.loc[i, "SA"]
+
+        # print(self.df.loc[i, "When"], math.degrees(theta_slope))
 
     def energy_balance(self, row):
         i = row.Index
@@ -717,15 +742,15 @@ class Icestupa:
         print("Meltwater", self.df["meltwater"].iloc[-1])
         print("Ppt", self.df["ppt"].sum())
 
-        # Full Output
-        filename4 = self.folders["output_folder"] + "model_results.csv"
-        self.df.to_csv(filename4, sep=",")
+        # # Full Output
+        # filename4 = self.folders["output_folder"] + "model_results.csv"
+        # self.df.to_csv(filename4, sep=",")
 
         # data_store = pd.HDFStore("/home/surya/Programs/PycharmProjects/air_model/data/processed/schwarzsee/model_output.h5")
         # data_store["df_out"] = self.df
         # data_store.close()
 
-        # self.print_output()
+        self.print_output()
 
     def print_output(self, filename = "model_results.pdf"):
 
@@ -1077,6 +1102,7 @@ class Icestupa:
             "r_ice",
             "ppt",
             "dpt",
+            "thickness",
         ]
         for col in l:
             self.df[col] = 0
@@ -1099,6 +1125,7 @@ class Icestupa:
                 self.df.loc[0, "h_ice"] / self.df.loc[0, "r_ice"]
         )
 
+
         for row in self.df[1:].itertuples():
             i = row.Index
 
@@ -1113,7 +1140,7 @@ class Icestupa:
                 else:  # If ice melted in between fountain run
                     self.state = 0
 
-            self.surface_area(i)
+            self.thickness_surface_area(i)
 
             # Precipitation to ice quantity
             if row.T_a < self.T_rain and row.Prec > 0:
