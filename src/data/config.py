@@ -3,27 +3,12 @@ from datetime import datetime
 
 dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
-site = "guttannen"
-option = 'schwarzsee'
+site = "Leh"
+option = ''
 
 # site = input("Input the Field Site Name: ") or site
 
 print("Site is", site)
-
-max = False
-
-surface = dict(
-    ie=0.95,  # Ice Emissivity ie
-    a_i=0.35,  # Albedo of Ice a_i
-    a_s=0.85,  # Albedo of Fresh Snow a_s
-    decay_t=10,  # Albedo dry decay rate decay_t_d
-    dx=1e-02,  # Ice layer thickness
-    z0mi=0.0017,  # Ice Momentum roughness length
-    z0hi=0.0017,  # Ice Scalar roughness length
-    snow_fall_density=250,  # Snowfall density
-    rain_temp=1,  # Temperature condition for liquid precipitation
-    h_aws=3,  # m height of AWS
-)
 
 if site == "schwarzsee":
     folders = dict(
@@ -43,6 +28,30 @@ if site == "schwarzsee":
         aperture_f=0.005,  # Fountain aperture diameter
         theta_f=45,  # Fountain aperture diameter
         h_f=1.35,  # Fountain steps h_f
+        discharge=3.58,  # Fountain on discharge
+        crit_temp=0,  # Fountain runtime temperature
+        latitude=46.693723,
+        longitude=7.297543,
+        utc_offset=1,
+    )
+
+if site == "Leh":
+    folders = dict(
+        dirname=os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+        input_folder=os.path.join(dir, "data/interim/Leh/"),
+        output_folder=os.path.join(dir, "data/processed/Leh/"),
+        sim_folder=os.path.join(dir, "data/processed/Leh/simulations/"),
+    )
+
+    dates = dict(
+        start_date=datetime(2019, 1, 1),
+        end_date=datetime(2019, 6, 1),
+        fountain_off_date=datetime(2019, 3, 1),
+    )
+    fountain = dict(
+        aperture_f=0.005,  # Fountain aperture diameter
+        theta_f=45,  # Fountain aperture diameter
+        h_f=5,  # Fountain steps h_f
         discharge=3.58,  # Fountain on discharge
         crit_temp=0,  # Fountain runtime temperature
         latitude=46.693723,

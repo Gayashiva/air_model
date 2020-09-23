@@ -13,7 +13,7 @@ from matplotlib.ticker import AutoMinorLocator
 from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 import seaborn as sns
-from src.data.config import site, dates
+from src.data.config import site, dates, option
 
 
 class Icestupa:
@@ -34,7 +34,7 @@ class Icestupa:
     p0 = 1013  # Standard air pressure hPa
 
     """Model constants"""
-    time_steps = 5 * 60  # s Model time steps
+    time_steps = 5*60  # s Model time steps
     dx = 5e-03  # Ice layer thickness
     dirname = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -73,8 +73,11 @@ class Icestupa:
                 self.dirname, "data/processed/" + site + "/simulations"
             ),
         )
-
-        input_file = self.folders["input_folder"] + "raw_input.csv"
+        if option != "ERA5":
+            input_file = self.folders["input_folder"] + "raw_input.csv"
+        else:
+            input_file = "/home/surya/Programs/PycharmProjects/ERA5/Eispalast_raw_input_ERA5.csv"
+            print("Using ERA5")
 
         self.df = pd.read_csv(input_file, sep=",", header=0, parse_dates=["When"])
 
@@ -222,12 +225,13 @@ class Icestupa:
 
     def derive_parameters(self):
 
-        missing = ["a", "cld", "SEA", "e_a", "vp_a", "LW_in"]
+        missing = ["a", "cld", "SEA", "e_a", "vp_a", "LW_in", "RH"]
         for col in missing:
             if col in list(self.df.columns):
                 missing.remove(col)
             else:
                 self.df[col] = 0
+                print("Missing variables", col)
 
         """Albedo Decay"""
         self.t_decay = (
@@ -295,9 +299,11 @@ class Icestupa:
 
         self.df = self.df.round(5)
 
-        self.df = self.df.drop(["Unnamed: 0"], axis=1)
+        if option == "ERA5":
+            data_store = pd.HDFStore(self.folders["input_folder"] + "model_input_ERA5.h5")
+        else:
+            data_store = pd.HDFStore(self.folders["input_folder"] + "model_input.h5")
 
-        data_store = pd.HDFStore(self.folders["input_folder"] + "model_input.h5")
         data_store["df"] = self.df
         data_store.close()
 
@@ -501,7 +507,11 @@ class Icestupa:
         print("Deposition", self.df["dpt"].sum())
 
         # Full Output
-        filename4 = self.folders["output_folder"] + "model_results.csv"
+        if option == "ERA5":
+            filename4 = self.folders["output_folder"] + "model_results_ERA5.csv"
+        else:
+            filename4 = self.folders["output_folder"] + "model_results.csv"
+        # filename4 = self.folders["output_folder"] + "model_results.csv"
         self.df.to_csv(filename4, sep=",")
 
         data_store = pd.HDFStore(
@@ -523,11 +533,17 @@ class Icestupa:
         self.df = self.df.reset_index()
 
     def read_output(self):
+        if option == "ERA5":
+            self.df = pd.read_csv(
+                self.folders["output_folder"] + "model_results_ERA5.csv",
+                sep=",",
+            )
+        else:
 
-        self.df = pd.read_csv(
-            self.folders["output_folder"] + "model_results.csv",
-            sep=",",
-        )
+            self.df = pd.read_csv(
+                self.folders["output_folder"] + "model_results.csv",
+                sep=",",
+            )
         self.df["When"] = pd.to_datetime(self.df["When"], format="%Y.%m.%d %H:%M:%S")
 
         print(
@@ -548,10 +564,6 @@ class Icestupa:
         )
         print(
             f"Max_growth {self.df.solid.max() / 5}, average_discharge {self.df.Discharge.replace(0, np.NaN).mean()}"
-        )
-
-        print(
-            f"Duration {self.df.index[-1] * 5 / (60 * 24)}"
         )
 
         # Output for manim
@@ -611,6 +623,10 @@ class Icestupa:
                     self.df.loc[i - 1, "h_ice"] = self.tree_height
 
                 if self.site == 'schwarzsee':
+                    self.df.loc[i - 1, "r_ice"] = self.spray_radius()
+                    self.df.loc[i - 1, "h_ice"] = self.dx
+
+                if self.site == 'Leh':
                     self.df.loc[i - 1, "r_ice"] = self.spray_radius()
                     self.df.loc[i - 1, "h_ice"] = self.dx
 
@@ -767,8 +783,10 @@ class PDF(Icestupa):
             filename = self.folders["input_folder"]
 
         """Input Plots"""
-
-        filename = self.folders["input_folder"] + "data.pdf"
+        if option == "ERA5":
+            filename = self.folders["input_folder"] + "data_ERA5.pdf"
+        else:
+            filename = self.folders["input_folder"] + "data.pdf"
 
         pp = PdfPages(filename)
 
@@ -925,7 +943,10 @@ class PDF(Icestupa):
     def print_output(self, filename="model_results.pdf"):
 
         if filename == "model_results.pdf":
-            filename = self.folders["output_folder"] + "model_results.pdf"
+            if option == "ERA5":
+                filename = self.folders["output_folder"] + "model_results_ERA5.pdf"
+            else:
+                filename = self.folders["output_folder"] + "model_results.pdf"
 
         self.df = self.df.rename(
             {
@@ -1501,9 +1522,9 @@ if __name__ == "__main__":
 
     schwarzsee = PDF(site=site)
 
-    # schwarzsee.derive_parameters()
+    schwarzsee.derive_parameters()
 
-    # schwarzsee.print_input()
+    schwarzsee.print_input()
 
     schwarzsee.read_input()
 
@@ -1515,7 +1536,7 @@ if __name__ == "__main__":
 
     schwarzsee.summary()
 
-    schwarzsee.print_output_guttannen()
+    schwarzsee.print_output()
 
     total = time.time() - start
 
