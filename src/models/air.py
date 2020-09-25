@@ -88,9 +88,15 @@ class Icestupa:
             self.tree_height = 1.93
             self.tree_radius = 4.13 / 2
             self.dia_f = 0.005  # Fountain aperture diameter
-            self.h_f = 3.93  # Fountain steps h_f
+            self.h_f = 3.93
             self.theta_f = 0
             self.df_cam = pd.read_csv(self.folders["input_folder"] + "cam.csv", sep=",", header=0, parse_dates=["When"])
+
+        if self.site == "Leh":
+            self.latitude = 34.1526
+            self.longitude = 77.5771
+            self.dia_f = 0.01  # Fountain aperture diameter
+            self.h_f = 5
 
     def SEA(self, date):
 

@@ -88,20 +88,24 @@ interpolated["Prec"] = df_out["Prec"].resample("5T").bfill()
 interpolated = interpolated.reset_index()
 
 interpolated["Discharge"] = 0
-mask = interpolated["T_a"] < fountain["crit_temp"]
+mask = (interpolated["T_a"] < fountain["crit_temp"]) & (interpolated["SW_direct"] < 100)
 mask_index = interpolated[mask].index
-interpolated.loc[mask_index, "Discharge"] = 15
+interpolated.loc[mask_index, "Discharge"] = 2*60
 mask = interpolated["When"] >= dates["fountain_off_date"]
 mask_index = interpolated[mask].index
 interpolated.loc[mask_index, "Discharge"] = 0
 
-print(interpolated.tail(10))
 
-interpolated.to_csv(folders["input_folder"] + "raw_input.csv")
 
 # For Leh
 interpolated["Prec"] = 0
 interpolated["RH"] = 20
+interpolated["cld"] = 0.1
+
+
+interpolated.to_csv(folders["input_folder"] + "raw_input.csv")
+
+print(interpolated.tail(10))
 # print(df_out.T_a.corr(df1.T_a))
 # df1 = df1.reset_index()
 # fig, ax = plt.subplots()

@@ -45,8 +45,8 @@ if site == "Leh":
 
     dates = dict(
         start_date=datetime(2019, 1, 1),
-        end_date=datetime(2019, 6, 1),
-        fountain_off_date=datetime(2019, 3, 1),
+        end_date=datetime(2019, 6, 30),
+        fountain_off_date=datetime(2019, 5, 1),
     )
     fountain = dict(
         aperture_f=0.005,  # Fountain aperture diameter
